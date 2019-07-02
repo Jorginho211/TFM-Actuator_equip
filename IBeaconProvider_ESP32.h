@@ -14,7 +14,7 @@ class IBeaconProvider_ESP32: public IBeaconProvider  {
         IBeacon* parseBeacon(uint8_t* data, uint8_t length);
     public:
         IBeaconProvider_ESP32();
-        void start();
+        void start(uint32_t time_s);
         IBeaconList* getResults();
         void stop();
 };

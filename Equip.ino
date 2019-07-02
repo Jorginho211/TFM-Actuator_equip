@@ -12,10 +12,7 @@ uint8_t episNeeded = 3;
 IBeaconTransmitter* iBeaconTransmitter;
 IBeaconProvider *iBeaconProvider;
 
-struct timeval now;
-unsigned long lastTime;
 unsigned long lastTimeActivate;
-bool iBeaconMode = false; 
 
 void setup() {
   Serial.begin(115200);
@@ -28,7 +25,10 @@ void setup() {
   //Obtiene los iBeacons del entorno
   iBeaconProvider = new IBeaconProvider_ESP32();
 
-  lastTime = 0;
+  //Se inicia el envio del beacon del area
+  iBeaconTransmitter->start();
+
+  lastTimeActivate = 0;
 
   pinMode(2,OUTPUT);
 }
@@ -40,49 +40,30 @@ void loop() {
 
 
 void manageBluetooth() {
+  //Se inicia un escaneo con la duracion del mismo
+  iBeaconProvider->start(1);
+
+  //Se recogen los resultados
+  IBeaconList *iBeacons = iBeaconProvider->getResults();
+
+  struct timeval now;
   gettimeofday(&now, NULL);
 
-  if(now.tv_sec - lastTime <= 2){
-    return;
-  }
-
-  if(lastTime > 0){
-    iBeaconMode = !iBeaconMode;
-  }
-
-  if(iBeaconMode){
-    if(lastTime > 0)
-      iBeaconProvider->stop();
-
-    iBeaconTransmitter->start();
-
-    if(lastTime > 0){
-      IBeaconList *iBeacons = iBeaconProvider->getResults();
-      struct timeval now2;
-      gettimeofday(&now2, NULL);
-
-      printf("--------------------------------------------------------------------------------\n");
-      for(int i = 0; i < iBeacons->size; i++){
-        IBeacon *iBeacon = iBeacons->list[i];
-        printf("UUID: %s\tMAJOR: %d\tMINOR: %d\tTX_POWER: %d\tRSSI: %d\tDISTANCE: %lf\n", iBeacon->uuid.c_str(), iBeacon->major, iBeacon->minor, iBeacon->txPower, iBeacon->rssi, iBeacon->getDistance());
-        if(checkIBeacon(iBeacon)) {
-          lastTimeActivate = now2.tv_sec;
-        }
-      }
-      printf("--------------------------------------------------------------------------------\n\n");
-
-      if(now2.tv_sec - lastTimeActivate > 5){
-        digitalWrite(2, LOW);
-      }
+  //Se imprimen los resultados y se checkean para ver si hai un operario valido
+  printf("--------------------------------------------------------------------------------\n");
+  for(int i = 0; i < iBeacons->size; i++){
+    IBeacon *iBeacon = iBeacons->list[i];
+    printf("UUID: %s\tMAJOR: %d\tMINOR: %d\tTX_POWER: %d\tRSSI: %d\tDISTANCE: %lf\n", iBeacon->uuid.c_str(), iBeacon->major, iBeacon->minor, iBeacon->txPower, iBeacon->rssi, iBeacon->getDistance());
+    if(checkIBeacon(iBeacon)) {
+      lastTimeActivate = now.tv_sec;
     }
   }
-  else {
-    if(lastTime > 0)
-      iBeaconTransmitter->stop();
-    iBeaconProvider->start();
+  printf("--------------------------------------------------------------------------------\n\n");
+  
+  //Si pasaron 5 segundos sin volverse a detectar un operario valido se desconecta el actuador
+  if(now.tv_sec - lastTimeActivate > 5){
+    digitalWrite(2, LOW);
   }
-
-  lastTime = now.tv_sec;
 }
 
 bool checkIBeacon(IBeacon *iBeacon){
@@ -90,7 +71,6 @@ bool checkIBeacon(IBeacon *iBeacon){
     return false;
   }
 
-  
   digitalWrite(2, HIGH);
 
   return true;

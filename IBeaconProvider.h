@@ -13,7 +13,7 @@ class IBeaconProvider {
     protected:
         IBeaconList *iBeacons;
     public:
-        virtual void start() {};
+        virtual void start(uint32_t time_s) {};
         virtual IBeaconList* getResults() {};
         virtual void stop() {}
 };

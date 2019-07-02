@@ -61,12 +61,12 @@ IBeacon* IBeaconProvider_ESP32::parseBeacon(uint8_t *data, uint8_t length){
     return iBeacon;
 }
 
-void IBeaconProvider_ESP32::start() {
+void IBeaconProvider_ESP32::start(uint32_t time_s) {
     for(uint8_t i = 0; i < this->iBeacons->size; i++){
         delete this->iBeacons->list[i];
     }
 
-    BLEScanResults foundDevices = pBLEScan->start(2, true);
+    BLEScanResults foundDevices = pBLEScan->start(time_s, true);
     this->iBeacons->size = 0;
 
     for(uint16_t i = 0; i < foundDevices.getCount(); i++){
