@@ -71,7 +71,7 @@ void IBeaconProvider_ESP32::start(uint32_t time_s) {
 
     for(uint16_t i = 0; i < foundDevices.getCount(); i++){
         IBeacon *iBeacon = this->parseBeacon((uint8_t*)foundDevices.getDevice(i).getManufacturerData().data(), foundDevices.getDevice(i).getManufacturerData().length());
-        if(iBeacon == NULL){
+        if(iBeacon == NULL || this->iBeacons->contains(iBeacon)){
             continue;
         }
 
