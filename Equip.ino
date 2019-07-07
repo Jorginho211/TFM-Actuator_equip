@@ -1,21 +1,10 @@
 #include "sys/time.h"
 #include "IBeaconTransmitter_ESP32.h"
 #include "IBeaconProvider_ESP32.h"
+#include "Settings.h"
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <SPIFFS.h>
-
-#define MQTT_SERVER "10.42.0.1"
-#define MQTT_PORT 8883
-
-#define PLACE_UUID "fffffffe-ffff-fffe-ffff-fffefffffffd"
-#define MAJOR_ID 1
-#define MINOR_ID 1
-#define EQUIPMENT_UUID "fffffffe-ffff-fffe-ffff-fffefffffffe"
-
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define PLACE_EQUIPMENT_MQTT "place/" STR(MAJOR_ID) "/" STR(MINOR_ID) "/equipment"
 
 uint8_t episNeeded = 3;
 
@@ -48,12 +37,8 @@ void setup() {
 }
 
 void setupWifi(){
-  IPAddress ip(10, 42, 0, 101);
-  IPAddress dns(8, 8, 8, 8);
-  IPAddress gateway(10, 42, 0, 1);
-
-  WiFi.config(ip, dns, gateway);
-  WiFi.begin("EQUIP", "");
+  WiFi.config(IPAddress(WIFI_IP), IPAddress(WIFI_DNS), IPAddress(WIFI_GATEWAY));
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
  
   printf("Conectando a rede.");
   while (WiFi.status() != WL_CONNECTED) {
@@ -84,9 +69,10 @@ void setupMQTT(){
 
 void reconnectMQTT() {
   while(!client.connected()){
-    if(!client.connect("PLACE", "", "")) continue;
+    if(!client.connect(MQTT_CLIENT_NAME, MQTT_USER, MQTT_USER)) continue;
 
-    client.subscribe(PLACE_EQUIPMENT_MQTT);
+    client.subscribe(MQTT_PLACE_EQUIPMENT);
+    client.subscribe(MQTT_PLACE_WORKERS);
   }
 
   client.loop();
