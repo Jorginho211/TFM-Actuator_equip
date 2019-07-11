@@ -2,24 +2,43 @@
 #include "IBeaconTransmitter_ESP32.h"
 #include "IBeaconProvider_ESP32.h"
 #include "Settings.h"
-#include <WiFiClientSecure.h>
-#include <PubSubClient.h>
-#include <SPIFFS.h>
+#include "MqttManager.h"
+#include "WorkersList.h"
+// #include <SPIFFS.h>
 
 uint8_t episNeeded = 3;
+WorkersList *allowedWorkers;
 
 IBeaconTransmitter* iBeaconTransmitter;
 IBeaconProvider *iBeaconProvider;
 
 unsigned long lastTimeActivate;
 
-WiFiClientSecure espClient;
-PubSubClient client(espClient);
+void equipmentMqttCallback(uint8_t eNeeded){
+  episNeeded = eNeeded;
+  printf("Equipment: %d\n", episNeeded);
+}
+
+void workerMqttCallback(WorkersList *list){
+  if(allowedWorkers != NULL){
+    allowedWorkers->dispose();
+    delete allowedWorkers;
+  }
+
+  allowedWorkers = list;
+
+  allowedWorkers->toString();
+}
 
 void setup() {
   Serial.begin(115200);
-  setupWifi();
-  setupMQTT();
+  allowedWorkers = new WorkersList();
+
+  //Inicializando MQTT
+  MqttManager::init(WIFI_SSID, WIFI_PASS, IPAddress(WIFI_IP), IPAddress(WIFI_DNS), IPAddress(WIFI_GATEWAY), MQTT_SERVER, MQTT_PORT, MQTT_CLIENT_NAME, MQTT_USER, MQTT_PASS);
+  MqttManager::loadCACert(CA);
+  MqttManager::setEquipmentTopic(MQTT_PLACE_EQUIPMENT, equipmentMqttCallback);
+  MqttManager::setWorkersTopic(MQTT_PLACE_WORKERS, workerMqttCallback);
 
   //Transmite un iBeacon
   IBeacon* iBeacon = new IBeacon(PLACE_UUID, MAJOR_ID, MINOR_ID, -80, 0);
@@ -36,53 +55,10 @@ void setup() {
   pinMode(2,OUTPUT);
 }
 
-void setupWifi(){
-  WiFi.config(IPAddress(WIFI_IP), IPAddress(WIFI_DNS), IPAddress(WIFI_GATEWAY));
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
- 
-  printf("Conectando a rede.");
-  while (WiFi.status() != WL_CONNECTED) {
-      printf(".");
-      delay(500);
-  }
-  printf("\n");
-
-  SPIFFS.begin(true);
-  File ca = SPIFFS.open("/ca.crt", "r");
-  if(!ca) {
-    printf("Fallo ao abrir o certificado!\n");
-    return;
-  }
-
-  espClient.loadCACert(ca, ca.size());
-}
-
-void callback(char* topic, byte* payload, unsigned int length) {
-  printf("topic: %s\n", topic);
-  printf("payload: %s\n", payload);
-}
-
-void setupMQTT(){
-  client.setServer(MQTT_SERVER, MQTT_PORT);
-  client.setCallback(callback);
-}
-
-void reconnectMQTT() {
-  while(!client.connected()){
-    if(!client.connect(MQTT_CLIENT_NAME, MQTT_USER, MQTT_USER)) continue;
-
-    client.subscribe(MQTT_PLACE_EQUIPMENT);
-    client.subscribe(MQTT_PLACE_WORKERS);
-  }
-
-  client.loop();
-}
-
 void loop() {
-  reconnectMQTT();
+  MqttManager::loop();
   manageBluetooth();
 }
-
 
 void manageBluetooth() {
   //Se inicia un escaneo con la duracion del mismo
@@ -112,7 +88,7 @@ void manageBluetooth() {
 }
 
 bool checkIBeacon(IBeacon *iBeacon){
-  if(iBeacon->uuid == EQUIPMENT_UUID || iBeacon->uuid == PLACE_UUID || iBeacon->getDistance() > 5 || (episNeeded & iBeacon->minor) != episNeeded) {
+  if(iBeacon->uuid == EQUIPMENT_UUID || iBeacon->uuid == PLACE_UUID || iBeacon->getDistance() > 5 || (episNeeded & iBeacon->minor) != episNeeded || !allowedWorkers->contains(iBeacon->uuid)) {
     return false;
   }
 
