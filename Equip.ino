@@ -4,7 +4,7 @@
 #include "Settings.h"
 #include "MqttManager.h"
 #include "WorkersList.h"
-// #include <SPIFFS.h>
+#include "FileSystemManager.h"
 
 uint8_t episNeeded = 3;
 WorkersList *allowedWorkers;
@@ -16,6 +16,7 @@ unsigned long lastTimeActivate;
 
 void equipmentMqttCallback(uint8_t eNeeded){
   episNeeded = eNeeded;
+  FileSystemManager::writeEquipmentNeeded(episNeeded);
   printf("Equipment: %d\n", episNeeded);
 }
 
@@ -26,19 +27,33 @@ void workerMqttCallback(WorkersList *list){
   }
 
   allowedWorkers = list;
+  FileSystemManager::writeWorkersAllowed(allowedWorkers);
 
   allowedWorkers->toString();
 }
 
 void setup() {
   Serial.begin(115200);
-  allowedWorkers = new WorkersList();
-
+  FileSystemManager::init();
+  allowedWorkers = FileSystemManager::readAllowedWorkers();
+  uint8_t* epis = FileSystemManager::readEquipmentNeeded();
+  
   //Inicializando MQTT
   MqttManager::init(WIFI_SSID, WIFI_PASS, IPAddress(WIFI_IP), IPAddress(WIFI_DNS), IPAddress(WIFI_GATEWAY), MQTT_SERVER, MQTT_PORT, MQTT_CLIENT_NAME, MQTT_USER, MQTT_PASS);
   MqttManager::loadCACert(CA);
   MqttManager::setEquipmentTopic(MQTT_PLACE_EQUIPMENT, equipmentMqttCallback);
   MqttManager::setWorkersTopic(MQTT_PLACE_WORKERS, workerMqttCallback);
+
+  if(allowedWorkers == NULL){
+    allowedWorkers = new WorkersList();
+  }
+
+  if(epis == NULL){
+    episNeeded = -1; //Al ser unsigned se pone en el ultimo valor positivo
+  }
+  else {
+    episNeeded = *epis;
+  }
 
   //Transmite un iBeacon
   IBeacon* iBeacon = new IBeacon(PLACE_UUID, MAJOR_ID, MINOR_ID, -80, 0);
