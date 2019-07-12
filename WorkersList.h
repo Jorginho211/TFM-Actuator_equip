@@ -34,7 +34,7 @@ class WorkersList {
         }
 
         void dispose(){
-            if(this->workers == NULL){
+            if(this->workers == NULL || this->size == 0){
                 return;
             }
 
@@ -46,7 +46,7 @@ class WorkersList {
         }
 
         void toString() {
-            if(this->workers == NULL){
+            if(this->workers == NULL || this->size == 0){
                 return;
             }
 

@@ -46,11 +46,7 @@ void MqttManager::loadCACert(char *ca){
 }
 
 bool MqttManager::connect(){
-    while(!MqttManager::client.connected()){
-        if(!client.connect(MqttManager::clientName, MqttManager::username, MqttManager::password)) {
-            continue;
-        }
-
+    if(!MqttManager::client.connected() && client.connect(MqttManager::clientName, MqttManager::username, MqttManager::password)){
         if(MqttManager::equipmentTopic != NULL){
             MqttManager::client.subscribe(MqttManager::equipmentTopic);
         }
@@ -58,11 +54,13 @@ bool MqttManager::connect(){
         if(MqttManager::workersTopic != NULL){
             MqttManager::client.subscribe(MqttManager::workersTopic);
         }
-
-        return true;
+    }
+    else if (!MqttManager::client.connected()){
+        printf("Non se puido conectar ao servidor MQTT\n");
+        return false;
     }
 
-    return false;    
+    return true;    
 }
 
 bool MqttManager::disconnect() {
@@ -92,9 +90,9 @@ void MqttManager::setWorkersTopic(char *topic, void (*callback)(WorkersList *lis
     MqttManager::client.subscribe(MqttManager::workersTopic);
 }
 
-void MqttManager::connectWiFi(){
+bool MqttManager::connectWiFi(){
     if(WiFi.status() == WL_CONNECTED){
-        return;
+        return true;
     }
 
     if(ip != NULL && dns != NULL && gateway != NULL){
@@ -104,16 +102,28 @@ void MqttManager::connectWiFi(){
     WiFi.begin(MqttManager::wifiSsid, MqttManager::wifiPassword);
 
     printf("Conectando a rede.");
-    while (WiFi.status() != WL_CONNECTED) {
+    uint8_t retry = 0;
+    while (WiFi.status() != WL_CONNECTED && retry < 5) {
         printf(".");
-        delay(500);
+        delay(50);
+        retry++;
     }
     printf("\n");
+    
+    if(WiFi.status() != WL_CONNECTED){
+        printf("Non se puido conectar a WiFi\n");
+        return false;
+    }
+
+    return true;
 }
 
 bool MqttManager::loop() {
-    MqttManager::connectWiFi();
-    MqttManager::connect();
+    if(!MqttManager::connectWiFi() || !MqttManager::connect()){
+        return false;
+    }
+
+    printf("AQUI\n");
     MqttManager::client.loop();
 
     return true;

@@ -12,7 +12,7 @@
             static void init(char *ssid, char *wifiPassword, IPAddress ip, IPAddress dns, IPAddress gateway, char *server, int port, char *clientName, char *username, char *mqttPassword);
             static void loadCACert(char *ca);
             static bool connect();
-            static void connectWiFi();
+            static bool connectWiFi();
             static bool disconnect();
             static void setEquipmentTopic(char *topic, void (*callback)(uint8_t));
             static void setWorkersTopic(char *topic, void (*callback)(WorkersList*));
