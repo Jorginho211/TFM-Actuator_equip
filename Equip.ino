@@ -55,6 +55,10 @@ void setup() {
     episNeeded = *epis;
   }
 
+  //Se piden por MQTT al iniciar los parametros iniciales
+  MqttManager::requestEquipment(MAJOR_ID, MINOR_ID);
+  MqttManager::requestWorkers(MAJOR_ID, MINOR_ID);
+
   //Transmite un iBeacon
   IBeacon* iBeacon = new IBeacon(PLACE_UUID, MAJOR_ID, MINOR_ID, -80, 0);
   iBeaconTransmitter = new IBeaconTransmitter_ESP32(iBeacon);

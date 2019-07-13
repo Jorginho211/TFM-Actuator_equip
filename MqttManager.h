@@ -16,6 +16,8 @@
             static bool disconnect();
             static void setEquipmentTopic(char *topic, void (*callback)(uint8_t));
             static void setWorkersTopic(char *topic, void (*callback)(WorkersList*));
+            static void requestEquipment(uint8_t major, uint8_t minor);
+            static void requestWorkers(uint8_t major, uint8_t minor);
             static bool loop();
         private:
             static WiFiClientSecure wifiClient;

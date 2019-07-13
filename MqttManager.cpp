@@ -123,7 +123,6 @@ bool MqttManager::loop() {
         return false;
     }
 
-    printf("AQUI\n");
     MqttManager::client.loop();
 
     return true;
@@ -162,4 +161,32 @@ void MqttManager::mqttCallback(char *topic, byte *payload, unsigned int length){
 
         workersCallback(workerList);
     }
+}
+
+void MqttManager::requestEquipment(uint8_t major, uint8_t minor){
+    if(MqttManager::equipmentTopic == NULL || !MqttManager::loop()){
+        return;
+    }
+
+    char topic[50];
+    sprintf(topic, "%s/request", MqttManager::equipmentTopic);
+
+    char payload[30];
+    sprintf(payload, "{\"major\":%d,\"minor\":%d}", major, minor);
+    
+    MqttManager::client.publish(topic, payload);
+}
+
+void MqttManager::requestWorkers(uint8_t major, uint8_t minor){
+    if(MqttManager::workersTopic == NULL || !MqttManager::loop()){
+        return;
+    }
+
+    char topic[50];
+    sprintf(topic, "%s/request", MqttManager::workersTopic);
+
+    char payload[30];
+    sprintf(payload, "{\"major\":%d,\"minor\":%d}", major, minor);
+
+    MqttManager::client.publish(topic, payload);
 }
