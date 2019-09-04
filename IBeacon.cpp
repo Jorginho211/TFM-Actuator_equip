@@ -14,8 +14,18 @@ IBeacon::IBeacon(std::string uuid, uint8_t major, uint8_t minor, int8_t txPower,
 }
 
 double IBeacon::getDistance() {
-    uint8_t n = 3; //N puede ser un valor entre 2 y 4 dependiendo de las condiciones
+    double distance = 0;
+    if(this->rssi == 0){
+        return -1.0;
+    }
 
-    double distance = pow(10, ((this->txPower - this->rssi)/(10.0 * n)));
+    double ratio = this->rssi * 1.0 / this->txPower;
+    if(ratio < 1.0){
+        distance = pow(ratio, 10);
+    }
+    else {
+        distance = 0.89976 * pow(ratio, 7.7095) + 0.11;
+    }
+
     return distance;
 }

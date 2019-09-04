@@ -6,6 +6,9 @@
 #include "WorkersList.h"
 #include "FileSystemManager.h"
 
+#define LED_ROJO 25
+#define LED_VERDE 26
+
 uint8_t episNeeded = 3;
 WorkersList *allowedWorkers;
 
@@ -71,7 +74,11 @@ void setup() {
 
   lastTimeActivate = 0;
 
-  pinMode(2,OUTPUT);
+  pinMode(LED_ROJO, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+
+  digitalWrite(LED_ROJO, HIGH);
+  digitalWrite(LED_VERDE, LOW);
 }
 
 void loop() {
@@ -102,16 +109,16 @@ void manageBluetooth() {
   
   //Si pasaron 5 segundos sin volverse a detectar un operario valido se desconecta el actuador
   if(now.tv_sec - lastTimeActivate > 5){
-    digitalWrite(2, LOW);
+    digitalWrite(LED_ROJO, HIGH);
   }
 }
 
 bool checkIBeacon(IBeacon *iBeacon){
-  if(iBeacon->uuid == EQUIPMENT_UUID || iBeacon->uuid == PLACE_UUID || iBeacon->getDistance() > 5 || (episNeeded & iBeacon->minor) != episNeeded || !allowedWorkers->contains(iBeacon->uuid)) {
+  if(iBeacon->uuid == EQUIPMENT_UUID || iBeacon->uuid == PLACE_UUID || iBeacon->getDistance() > 3 || (episNeeded & iBeacon->minor) != episNeeded || !allowedWorkers->contains(iBeacon->uuid)) {
     return false;
   }
 
-  digitalWrite(2, HIGH);
+  digitalWrite(LED_ROJO, LOW);
 
   return true;
 }
